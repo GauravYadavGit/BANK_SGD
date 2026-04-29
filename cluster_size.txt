@@ -1,0 +1,4 @@
+In our project, we used a shared EMR cluster rather than provisioning a cluster per pipeline. The cluster was sized to handle multiple concurrent workloads, with one master node, around 6 core nodes, and auto-scaled task nodes depending on demand.
+Our pipeline was one of several running on this cluster, so we configured our Spark job to use around 6 to 8 executors with 2 cores each, consuming roughly 12 to 16 cores during execution. Resource allocation was managed by YARN, which allowed multiple pipelines to run simultaneously without fully occupying the cluster.
+We also ensured that critical financial pipelines had higher priority through queue-based resource allocation. During peak loads, we leveraged auto-scaling task nodes to handle additional demand and avoid performance bottlenecks.
+This setup allowed us to balance cost efficiency with performance while meeting our SLA of delivering processed data within one hour.

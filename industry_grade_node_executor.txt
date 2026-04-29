@@ -1,0 +1,253 @@
+SPARK EXECUTOR SIZING & MEMORY TUNING – PRACTICAL NOTES
+
+---
+
+1. CORE ARCHITECTURE
+
+---
+
+Cluster
+├── Driver (Master Node)
+└── Worker Nodes
+├── Executor 1
+├── Executor 2
+└── Executor N
+
+* Worker Node = Machine (VM)
+* Executor = JVM process running tasks
+* Core = CPU unit inside executor
+* Task = Processes 1 partition
+
+---
+
+2. EXECUTOR CONFIGURATION
+
+---
+
+Example:
+spark.executor.memory = 4 GB
+spark.executor.cores = 3
+
+Meaning:
+
+* Each executor runs 3 tasks in parallel
+* Needs memory for 3 partitions simultaneously
+
+---
+
+3. PARTITION-BASED MEMORY REQUIREMENT
+
+---
+
+Partition size = 128 MB
+Cores per executor = 3
+
+Required memory:
+128 × 3 = 384 MB
+
+(This is actual working memory needed)
+
+---
+
+4. MEMORY FRACTION LOGIC
+
+---
+
+spark.memory.fraction = 0.6
+
+Only 60% of executor memory is usable
+
+Total Memory split:
+
+* 60% → Spark (execution + storage)
+* 40% → Reserved (JVM/system)
+
+Calculation:
+0.6 × Total Memory = 384
+Total Memory = 384 / 0.6 = 640 MB
+
+IMPORTANT:
+Divide, not multiply
+
+---
+
+5. DISK SPILL ADJUSTMENT
+
+---
+
+Disk spill = writing data to disk when memory is insufficient
+
+Adjustment:
+640 × 0.9 ≈ 577 MB
+
+Trade-off:
+
+* Allow spill → less memory, slightly slower
+* Avoid spill → more memory, faster
+
+---
+
+6. RESERVED MEMORY
+
+---
+
+Add ~300 MB
+
+577 + 300 = 877 MB
+
+This includes:
+
+* JVM overhead
+* Spark internal metadata
+* Execution buffers
+
+NOT usable for data
+Always required
+
+---
+
+7. FINAL EXECUTOR MEMORY
+
+---
+
+877 MB → Rounded to 1 GB
+
+Reasons:
+
+* Infrastructure allocates fixed chunks
+* Prevent OOM due to slight data increase
+
+---
+
+8. FINAL FORMULA
+
+---
+
+Executor Memory =
+((Partition Size × Cores) / Memory Fraction)
+× Spill Adjustment
+
+* Reserved Memory
+
+---
+
+9. PARALLELISM
+
+---
+
+Total Tasks = Executors × Cores
+
+Example:
+3 executors × 3 cores = 9 tasks
+
+Recommended partitions:
+2–4 × total cores
+
+Example:
+9 × 4 = 36 partitions
+
+---
+
+10. PARTITION SIZE
+
+---
+
+Partition size = Total Data / Partitions
+
+Example:
+4096 MB / 36 ≈ 113 MB
+
+Ideal range:
+
+* <32 MB → Too small (overhead)
+* 100–200 MB → Ideal
+* > 500 MB → Too large (slow)
+
+---
+
+11. EXECUTOR MEMORY BREAKDOWN
+
+---
+
+1 GB executor:
+
+* ~600 MB → usable (Spark)
+* ~400 MB → system/overhead
+
+---
+
+12. COMMON MISTAKES
+
+---
+
+1. Ignoring memory fraction
+   384 × 0.6 = 230 MB → insufficient
+
+2. Ignoring reserved memory
+   Leads to OOM
+
+3. Too many cores per executor
+   Causes GC issues
+
+4. Wrong partition size
+   Too small → overhead
+   Too large → slow
+
+---
+
+13. TUNING STRATEGY
+
+---
+
+Memory-heavy job:
+
+* Increase executor.memory
+* Increase memoryOverhead
+
+CPU-heavy job:
+
+* Increase cores
+* Increase executors
+
+Shuffle-heavy job:
+
+* Tune partitions
+* Enable AQE
+
+High disk spill:
+
+* Increase memory
+* Reduce partition size
+
+---
+
+14. GOLDEN RULES
+
+---
+
+1. Memory depends on:
+   Parallelism × Partition size
+
+2. Executor memory ≠ usable memory
+
+3. Always include:
+
+   * memory fraction
+   * reserved memory
+
+4. Partition size ≈ 100–200 MB
+
+5. Partitions ≈ 3–4 × total cores
+
+---
+
+15. FINAL INTUITION
+
+---
+
+Spark tuning =
+Memory + CPU + Parallelism + Partition Size + Overhead
+
+---
+
+## END OF NOTES

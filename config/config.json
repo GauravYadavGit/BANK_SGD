@@ -1,0 +1,20 @@
+{
+  "bronze_path": "s3://sgdopenexhange/financial-data/bronze/transactions",
+  "fx_path": "s3://sgdopenexhange/financial-data/open_exchange",
+  "silver_path": "s3://sgdopenexhange/financial-data/silver/transactions",
+  "reject_path": "s3://sgdopenexhange/financial-data/reject/transactions",
+
+  "expected_columns": [
+    "account_no",
+    "date",
+    "transaction_details",
+    "chq_no",
+    "value_date",
+    "withdrawal_amt",
+    "withdrawal_currency",
+    "deposit_amt",
+    "deposit_currency",
+    "balance_amt",
+    "ingestion_date"
+  ]
+}
